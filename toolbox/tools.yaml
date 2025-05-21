@@ -1,0 +1,72 @@
+sources:
+  # Sample PostgreSQL source - update with your actual database details
+  marketing-db:
+    kind: postgres
+    host: 127.0.0.1  # Update with your database host
+    port: 5432       # Update with your database port
+    database: marketing_db  # Update with your database name
+    user: postgres    # Update with your database user
+    password: postgres  # Update with your database password
+    # Uncomment if using SSL
+    # ssl_mode: require
+
+tools:
+  # Get campaign metrics
+  get-campaign-metrics:
+    kind: postgres-sql
+    source: marketing-db
+    description: Get campaign metrics by date range and channel
+    parameters:
+      - name: start_date
+        type: string
+        description: Start date of the date range (YYYY-MM-DD)
+      - name: end_date
+        type: string
+        description: End date of the date range (YYYY-MM-DD)
+      - name: channel
+        type: string
+        description: Marketing channel to filter by (optional)
+    statement: |
+      SELECT 
+        date, 
+        channel, 
+        SUM(impressions) as impressions, 
+        SUM(clicks) as clicks, 
+        SUM(conversions) as conversions, 
+        SUM(revenue) as revenue
+      FROM marketing_metrics
+      WHERE date BETWEEN $1 AND $2
+        AND ($3 IS NULL OR channel = $3)
+      GROUP BY date, channel
+      ORDER BY date, channel;
+
+  # Get channel performance
+  get-channel-performance:
+    kind: postgres-sql
+    source: marketing-db
+    description: Get overall performance by marketing channel
+    parameters:
+      - name: start_date
+        type: string
+        description: Start date of the date range (YYYY-MM-DD)
+      - name: end_date
+        type: string
+        description: End date of the date range (YYYY-MM-DD)
+    statement: |
+      SELECT 
+        channel, 
+        SUM(impressions) as impressions, 
+        SUM(clicks) as clicks, 
+        SUM(conversions) as conversions, 
+        SUM(revenue) as revenue,
+        CASE WHEN SUM(impressions) > 0 THEN (SUM(clicks)::float / SUM(impressions)) ELSE 0 END as ctr,
+        CASE WHEN SUM(clicks) > 0 THEN (SUM(conversions)::float / SUM(clicks)) ELSE 0 END as conversion_rate
+      FROM marketing_metrics
+      WHERE date BETWEEN $1 AND $2
+      GROUP BY channel
+      ORDER BY revenue DESC;
+
+toolsets:
+  marketing_analytics:
+    - get-campaign-metrics
+    - get-channel-performance
