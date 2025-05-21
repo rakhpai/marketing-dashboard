@@ -62,3 +62,18 @@ sudo journalctl -u streamlit-marketing.service
 - Systemd service ensures automatic restart on failure
 
 See `DASHBOARD_STATUS.md` for current configuration status and details.
+## GitMCP Integration
+
+This repository is configured for use with GitMCP, enabling AI assistants to better understand the codebase.
+
+### How to Use with AI Tools
+
+Once this repository is on GitHub, you can use it with GitMCP by:
+
+1. Replace "github.com" with "gitmcp.io" in the repository URL
+2. Configure your AI tool to use this URL as an MCP server
+3. Your AI assistant will now have enhanced context about this marketing dashboard
+
+Example:
+- GitHub URL: https://github.com/YOUR_USERNAME/marketing-dashboard
+- GitMCP URL: https://gitmcp.io/YOUR_USERNAME/marketing-dashboard

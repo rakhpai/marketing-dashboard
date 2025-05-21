@@ -1,0 +1,31 @@
+# Twelve Transfers Marketing Dashboard
+
+## Project Overview
+A Streamlit-based marketing dashboard for Twelve Transfers, displaying key marketing metrics and KPIs including traffic, conversions, and revenue by channel.
+
+## Main Components
+
+- `app.py` - Main Streamlit application with dashboard UI and visualizations
+- `.streamlit/config.toml` - Streamlit configuration for production deployment
+- `requirements.txt` - Python dependencies
+- `restart_streamlit.sh` & `run_streamlit.sh` - Service management scripts
+
+## Infrastructure
+
+- Deployed on Plesk server at path `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/`
+- Running as systemd service `streamlit-marketing.service` on port 9005
+- Nginx configured to proxy requests from `/marketing/` path to the Streamlit app
+- WebSocket connections properly configured for real-time updates
+
+## API and Integration Points
+
+- Uses Pandas for data manipulation
+- Altair for interactive visualizations
+- Currently using sample data that can be replaced with actual data sources
+
+## Key Features
+
+- Interactive charts showing channel performance
+- Traffic and conversion metrics
+- Filter capabilities by date range and channel
+- Responsive design for desktop and mobile viewing
