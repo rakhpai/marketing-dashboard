@@ -1,0 +1,10 @@
+[server]
+headless = true
+enableCORS = false
+enableXsrfProtection = false
+baseUrlPath = "/marketing"
+port = 9005
+
+[browser]
+serverAddress = "fgtwelve.ltd"
+gatherUsageStats = false
