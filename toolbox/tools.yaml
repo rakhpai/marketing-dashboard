@@ -10,8 +10,25 @@ sources:
     # Uncomment if using SSL
     # ssl_mode: require
 
+  # BigQuery source configuration
+  bigquery-analytics:
+    kind: bigquery
+    # Specify one of the authentication methods below:
+    
+    # Option 1: Using a service account key file
+    credentials_file: /var/www/vhosts/fgtwelve.ltd/env_files/seo_secrets/seo-integration-key.json
+    
+    # Option 2: Using service account JSON inline (not recommended for production)
+    # credentials_json: '{...json content...}'
+    
+    # Project ID (required)
+    project_id: twelve-marketing-analytics
+    
+    # Default dataset (optional)
+    dataset_id: marketing_data
+
 tools:
-  # Get campaign metrics
+  # PostgreSQL Tools
   get-campaign-metrics:
     kind: postgres-sql
     source: marketing-db
@@ -40,7 +57,6 @@ tools:
       GROUP BY date, channel
       ORDER BY date, channel;
 
-  # Get channel performance
   get-channel-performance:
     kind: postgres-sql
     source: marketing-db
@@ -66,7 +82,121 @@ tools:
       GROUP BY channel
       ORDER BY revenue DESC;
 
+  # BigQuery Tools
+  bq-campaign-performance:
+    kind: bigquery-sql
+    source: bigquery-analytics
+    description: Get campaign performance metrics from BigQuery
+    parameters:
+      - name: start_date
+        type: string
+        description: Start date of the date range (YYYY-MM-DD)
+      - name: end_date
+        type: string
+        description: End date of the date range (YYYY-MM-DD)
+      - name: campaign_id
+        type: string
+        description: Filter by campaign ID (optional)
+    statement: |
+      SELECT
+        campaign_name,
+        campaign_id,
+        DATE(date) as date,
+        SUM(impressions) as impressions,
+        SUM(clicks) as clicks,
+        SUM(cost) as cost,
+        SUM(conversions) as conversions,
+        SUM(conversion_value) as conversion_value,
+        SAFE_DIVIDE(SUM(clicks), SUM(impressions)) as ctr,
+        SAFE_DIVIDE(SUM(cost), SUM(clicks)) as cpc,
+        SAFE_DIVIDE(SUM(conversions), SUM(clicks)) as conversion_rate,
+        SAFE_DIVIDE(SUM(cost), SUM(conversions)) as cost_per_conversion
+      FROM
+        `marketing_data.campaign_performance`
+      WHERE
+        DATE(date) BETWEEN @start_date AND @end_date
+        AND (@campaign_id IS NULL OR campaign_id = @campaign_id)
+      GROUP BY
+        campaign_name, campaign_id, date
+      ORDER BY
+        date, campaign_name;
+
+  bq-channel-roi:
+    kind: bigquery-sql
+    source: bigquery-analytics
+    description: Calculate ROI by marketing channel
+    parameters:
+      - name: start_date
+        type: string
+        description: Start date of the date range (YYYY-MM-DD)
+      - name: end_date
+        type: string
+        description: End date of the date range (YYYY-MM-DD)
+    statement: |
+      SELECT
+        channel,
+        SUM(cost) as total_cost,
+        SUM(revenue) as total_revenue,
+        SUM(revenue) - SUM(cost) as profit,
+        (SUM(revenue) - SUM(cost)) / SUM(cost) as roi
+      FROM
+        `marketing_data.channel_performance`
+      WHERE
+        DATE(date) BETWEEN @start_date AND @end_date
+      GROUP BY
+        channel
+      ORDER BY
+        roi DESC;
+
+  bq-keyword-performance:
+    kind: bigquery-sql
+    source: bigquery-analytics
+    description: Get performance metrics for search keywords
+    parameters:
+      - name: start_date
+        type: string
+        description: Start date of the date range (YYYY-MM-DD)
+      - name: end_date
+        type: string
+        description: End date of the date range (YYYY-MM-DD)
+      - name: min_impressions
+        type: integer
+        description: Minimum impressions threshold (default 100)
+    statement: |
+      SELECT
+        keyword,
+        SUM(impressions) as impressions,
+        SUM(clicks) as clicks,
+        SUM(cost) as cost,
+        SUM(conversions) as conversions,
+        SAFE_DIVIDE(SUM(clicks), SUM(impressions)) as ctr,
+        SAFE_DIVIDE(SUM(cost), SUM(clicks)) as cpc,
+        SAFE_DIVIDE(SUM(conversions), SUM(clicks)) as conversion_rate,
+        SAFE_DIVIDE(SUM(cost), SUM(conversions)) as cost_per_conversion
+      FROM
+        `marketing_data.keyword_performance`
+      WHERE
+        DATE(date) BETWEEN @start_date AND @end_date
+      GROUP BY
+        keyword
+      HAVING
+        impressions >= @min_impressions OR @min_impressions IS NULL
+      ORDER BY
+        conversions DESC;
+
 toolsets:
   marketing_analytics:
     - get-campaign-metrics
     - get-channel-performance
+    - bq-campaign-performance
+    - bq-channel-roi
+    - bq-keyword-performance
+  
+  postgres_tools:
+    - get-campaign-metrics
+    - get-channel-performance
+  
+  bigquery_tools:
+    - bq-campaign-performance
+    - bq-channel-roi
+    - bq-keyword-performance
