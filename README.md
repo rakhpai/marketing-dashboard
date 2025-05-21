@@ -1,66 +1,64 @@
 # Marketing Dashboard
 
-This is a Streamlit-based marketing dashboard for fgtwelve.ltd.
+A Streamlit-based marketing dashboard for Twelve Transfers displaying key marketing metrics and KPIs.
 
-## Setup Information
+## Features
 
-The dashboard is powered by Streamlit and is configured as follows:
+- Interactive charts and visualizations
+- Channel performance tracking
+- Traffic and conversion metrics 
+- Dashboard filters by date range and marketing channel
+- Real-time updates via WebSockets
 
-- **App Location**: `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/app.py`
-- **URL**: https://fgtwelve.ltd/marketing/
-- **Service**: systemd service named `streamlit-marketing.service`
+## Installation
 
-## Architecture
+The dashboard is installed on the Plesk server and is accessible at:
+https://fgtwelve.ltd/marketing/
 
-1. **Streamlit Application**: Python-based web application running on port 8501
-2. **Nginx Configuration**: Proxies requests from /marketing to the Streamlit app
-3. **WebSocket Support**: Configured for real-time updates in the dashboard
+### Local Development Setup
 
-## Management Commands
+```bash
+# Clone the repository
+git clone <repository_url>
+
+# Navigate to project directory  
+cd marketing
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the dashboard
+streamlit run app.py
+```
+
+## Infrastructure Setup
+
+The dashboard runs as a systemd service on the server with Nginx configured to proxy requests to the Streamlit application.
+
+### Key Configuration Files
+
+- **Streamlit App**: `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/app.py`
+- **Systemd Service**: `/etc/systemd/system/streamlit-marketing.service`
+- **Nginx Configuration**: Set in Plesk's vhost_nginx.conf
 
 ### Service Management
 
 ```bash
-# Start the service
-sudo systemctl start streamlit-marketing.service
+# Check status
+sudo systemctl status streamlit-marketing.service
 
-# Stop the service
-sudo systemctl stop streamlit-marketing.service
-
-# Restart the service
+# Restart service
 sudo systemctl restart streamlit-marketing.service
 
-# Check service status
-sudo systemctl status streamlit-marketing.service
-```
-
-### Quick Restart
-
-```bash
-# Using the provided script
-sudo /var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/restart_streamlit.sh
-```
-
-### Logs
-
-```bash
-# View Streamlit logs
+# View logs
 sudo journalctl -u streamlit-marketing.service
-
-# View Nginx logs
-sudo tail -f /var/log/nginx/access.log
-sudo tail -f /var/log/nginx/error.log
 ```
 
-## Maintenance
+## Implementation Details
 
-To update the dashboard:
+- Running on port 9005
+- WebSocket support for real-time updates
+- Static assets cached via Nginx
+- Systemd service ensures automatic restart on failure
 
-1. Edit the main app file at `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/app.py`
-2. Restart the Streamlit service: `sudo systemctl restart streamlit-marketing.service`
-
-## Configuration Files
-
-- **Streamlit Config**: `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/.streamlit/config.toml`
-- **Nginx Config**: `/var/www/vhosts/fgtwelve.ltd/conf/vhost.conf`
-- **Systemd Service**: `/etc/systemd/system/streamlit-marketing.service`
+See `DASHBOARD_STATUS.md` for current configuration status and details.
