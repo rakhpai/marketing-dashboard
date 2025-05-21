@@ -62,11 +62,15 @@ sudo journalctl -u streamlit-marketing.service
 - Systemd service ensures automatic restart on failure
 
 See `DASHBOARD_STATUS.md` for current configuration status and details.
-## GitMCP Integration
+## AI Assistant Integration
 
-This repository is configured for use with GitMCP, enabling AI assistants to better understand the codebase.
+This repository is configured with multiple tools to enhance AI assistant capabilities:
 
-### How to Use with AI Tools
+### 1. GitMCP Integration
+
+GitMCP enables AI assistants to better understand the codebase structure.
+
+#### How to Use with AI Tools
 
 Once this repository is on GitHub, you can use it with GitMCP by:
 
@@ -77,3 +81,30 @@ Once this repository is on GitHub, you can use it with GitMCP by:
 Example:
 - GitHub URL: https://github.com/YOUR_USERNAME/marketing-dashboard
 - GitMCP URL: https://gitmcp.io/YOUR_USERNAME/marketing-dashboard
+
+### 2. MCP Toolbox for Databases
+
+MCP Toolbox allows AI assistants to directly query databases for generating insights.
+
+#### Configured Data Sources:
+
+- **PostgreSQL**: Local database for application metrics
+- **Supabase**: Remote PostgreSQL database for campaign data
+- **BigQuery**: Analytics data warehouse for marketing analytics
+
+#### Service Management:
+
+```bash
+# Check status
+sudo systemctl status mcp-toolbox.service
+
+# Restart service
+sudo systemctl restart mcp-toolbox.service
+
+# View logs
+sudo journalctl -u mcp-toolbox.service
+```
+
+Configuration files:
+- **Tools Config**: `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/toolbox/tools.yaml`
+- **Status Report**: `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/toolbox/MCP_TOOLBOX_STATUS.md`
