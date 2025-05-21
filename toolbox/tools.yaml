@@ -27,6 +27,16 @@ sources:
     # Default dataset (optional)
     dataset_id: marketing_data
 
+  # Supabase source configuration (via PostgreSQL connection)
+  supabase-marketing:
+    kind: postgres
+    host: db.example.supabase.co  # Replace with your Supabase host
+    port: 5432
+    database: postgres  # Supabase uses 'postgres' as the database name
+    user: postgres      # Replace with your Supabase database user
+    password: your_supabase_db_password  # Replace with your database password
+    ssl_mode: require   # Supabase requires SSL
+
 tools:
   # PostgreSQL Tools
   get-campaign-metrics:
@@ -184,6 +194,125 @@ tools:
       ORDER BY
         conversions DESC;
 
+  # Supabase Tools
+  supabase-get-campaigns:
+    kind: postgres-sql
+    source: supabase-marketing
+    description: Get marketing campaigns from Supabase
+    parameters:
+      - name: status
+        type: string
+        description: Filter by campaign status (active, paused, completed)
+      - name: limit
+        type: integer
+        description: Maximum number of campaigns to return (default 100)
+    statement: |
+      SELECT 
+        id, 
+        name, 
+        description,
+        start_date,
+        end_date,
+        budget,
+        status,
+        created_at,
+        updated_at
+      FROM campaigns
+      WHERE ($1 IS NULL OR status = $1)
+      ORDER BY created_at DESC
+      LIMIT $2;
+
+  supabase-get-campaign-details:
+    kind: postgres-sql
+    source: supabase-marketing
+    description: Get detailed information about a specific campaign
+    parameters:
+      - name: campaign_id
+        type: string
+        description: ID of the campaign
+    statement: |
+      SELECT 
+        c.id, 
+        c.name, 
+        c.description,
+        c.start_date,
+        c.end_date,
+        c.budget,
+        c.status,
+        c.target_audience,
+        c.created_at,
+        c.updated_at,
+        json_agg(DISTINCT cm.channel_name) AS channels,
+        json_agg(DISTINCT t.name) AS tags
+      FROM campaigns c
+      LEFT JOIN campaign_channels cm ON c.id = cm.campaign_id
+      LEFT JOIN campaign_tags ct ON c.id = ct.campaign_id
+      LEFT JOIN tags t ON ct.tag_id = t.id
+      WHERE c.id = $1
+      GROUP BY c.id;
+
+  supabase-campaign-performance:
+    kind: postgres-sql
+    source: supabase-marketing
+    description: Get performance metrics for a campaign from Supabase
+    parameters:
+      - name: campaign_id
+        type: string
+        description: ID of the campaign
+      - name: start_date
+        type: string
+        description: Start date of the date range (YYYY-MM-DD)
+      - name: end_date
+        type: string
+        description: End date of the date range (YYYY-MM-DD)
+    statement: |
+      SELECT 
+        date,
+        channel,
+        SUM(impressions) as impressions,
+        SUM(clicks) as clicks,
+        SUM(conversions) as conversions,
+        SUM(cost) as cost,
+        SUM(revenue) as revenue,
+        CASE WHEN SUM(impressions) > 0 THEN ROUND((SUM(clicks)::float / SUM(impressions))::numeric, 4) ELSE 0 END as ctr,
+        CASE WHEN SUM(clicks) > 0 THEN ROUND((SUM(conversions)::float / SUM(clicks))::numeric, 4) ELSE 0 END as conversion_rate,
+        CASE WHEN SUM(cost) > 0 THEN ROUND((SUM(revenue)::float / SUM(cost))::numeric, 2) ELSE 0 END as roi
+      FROM campaign_metrics
+      WHERE campaign_id = $1
+        AND date BETWEEN $2 AND $3
+      GROUP BY date, channel
+      ORDER BY date, channel;
+
+  supabase-audience-insights:
+    kind: postgres-sql
+    source: supabase-marketing
+    description: Get audience demographics and interests from Supabase
+    parameters:
+      - name: campaign_id
+        type: string
+        description: Filter by campaign ID (optional)
+      - name: start_date
+        type: string
+        description: Start date of the date range (YYYY-MM-DD)
+      - name: end_date
+        type: string
+        description: End date of the date range (YYYY-MM-DD)
+    statement: |
+      SELECT 
+        demographic_group,
+        interest_category,
+        SUM(reach) as reach,
+        SUM(impressions) as impressions,
+        SUM(clicks) as clicks,
+        SUM(conversions) as conversions,
+        CASE WHEN SUM(impressions) > 0 THEN ROUND((SUM(clicks)::float / SUM(impressions))::numeric, 4) ELSE 0 END as ctr,
+        CASE WHEN SUM(clicks) > 0 THEN ROUND((SUM(conversions)::float / SUM(clicks))::numeric, 4) ELSE 0 END as conversion_rate
+      FROM audience_insights
+      WHERE ($1 IS NULL OR campaign_id = $1)
+        AND date BETWEEN $2 AND $3
+      GROUP BY demographic_group, interest_category
+      ORDER BY reach DESC;
+
 toolsets:
   marketing_analytics:
     - get-campaign-metrics
@@ -191,6 +320,10 @@ toolsets:
     - bq-campaign-performance
     - bq-channel-roi
     - bq-keyword-performance
+    - supabase-get-campaigns
+    - supabase-get-campaign-details
+    - supabase-campaign-performance
+    - supabase-audience-insights
   
   postgres_tools:
     - get-campaign-metrics
@@ -200,3 +333,9 @@ toolsets:
     - bq-campaign-performance
     - bq-channel-roi
     - bq-keyword-performance
+    
+  supabase_tools:
+    - supabase-get-campaigns
+    - supabase-get-campaign-details
+    - supabase-campaign-performance
+    - supabase-audience-insights

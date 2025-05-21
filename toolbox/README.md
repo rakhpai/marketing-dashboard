@@ -12,6 +12,7 @@ The toolbox is configured to work with multiple database types:
 
 - **PostgreSQL**: For operational marketing data
 - **BigQuery**: For analytics and larger datasets
+- **Supabase**: For real-time campaign management and audience insights
 
 ## Setup
 
@@ -70,9 +71,25 @@ sources:
     dataset_id: marketing_data
 ```
 
+#### Supabase Configuration
+
+Supabase is accessed via its PostgreSQL connection:
+
+```yaml
+sources:
+  supabase-marketing:
+    kind: postgres
+    host: db.your-project.supabase.co
+    port: 5432
+    database: postgres
+    user: postgres
+    password: YOUR_SUPABASE_DB_PASSWORD
+    ssl_mode: require
+```
+
 ### Testing
 
-Two test scripts are provided:
+Several test scripts are provided:
 
 ```bash
 # First install the SDK (if not already installed)
@@ -83,15 +100,19 @@ python test_toolbox.py
 
 # Test only BigQuery tools
 python test_bigquery.py
+
+# Test only Supabase tools
+python test_supabase.py
 ```
 
 ## Available Toolsets
 
 The following toolsets are available:
 
-1. **marketing_analytics**: All tools (PostgreSQL and BigQuery)
+1. **marketing_analytics**: All tools (PostgreSQL, BigQuery, and Supabase)
 2. **postgres_tools**: Only PostgreSQL tools
 3. **bigquery_tools**: Only BigQuery tools
+4. **supabase_tools**: Only Supabase tools
 
 ## Using with AI Assistants
 
@@ -103,10 +124,11 @@ When using Claude, provide the MCP URL for the desired toolset:
 mcp://localhost:5000/toolsets/marketing_analytics
 ```
 
-Or for BigQuery tools only:
+Or for specific database tools:
 
 ```
 mcp://localhost:5000/toolsets/bigquery_tools
+mcp://localhost:5000/toolsets/supabase_tools
 ```
 
 ### With Claude Code CLI
@@ -144,6 +166,43 @@ Parameters:
 - `start_date`: Start date (YYYY-MM-DD)
 - `end_date`: End date (YYYY-MM-DD)
 - `min_impressions`: Minimum impressions threshold
+
+## Supabase Tools
+
+The following Supabase tools are available:
+
+### 1. supabase-get-campaigns
+
+Retrieve a list of marketing campaigns.
+
+Parameters:
+- `status`: Filter by campaign status (active, paused, completed)
+- `limit`: Maximum number of campaigns to return
+
+### 2. supabase-get-campaign-details
+
+Get detailed information about a specific campaign, including channels and tags.
+
+Parameters:
+- `campaign_id`: ID of the campaign
+
+### 3. supabase-campaign-performance
+
+Get performance metrics for a specific campaign.
+
+Parameters:
+- `campaign_id`: ID of the campaign
+- `start_date`: Start date (YYYY-MM-DD)
+- `end_date`: End date (YYYY-MM-DD)
+
+### 4. supabase-audience-insights
+
+Get audience demographics and interests data.
+
+Parameters:
+- `campaign_id`: Optional campaign ID filter
+- `start_date`: Start date (YYYY-MM-DD)
+- `end_date`: End date (YYYY-MM-DD)
 
 ## Troubleshooting
 
