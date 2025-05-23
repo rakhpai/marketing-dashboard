@@ -1,0 +1,96 @@
+---
+# Ansible playbook for deploying the marketing dashboard
+# This playbook pulls the latest changes from the git repository
+# and restarts any necessary services
+
+- name: Deploy Marketing Dashboard
+  hosts: marketing_servers
+  become: yes
+  vars:
+    repo_path: /var/www/vhosts/fgtwelve.ltd/httpdocs/marketing
+    branch: master
+    app_user: www-data
+    app_group: www-data
+    
+  tasks:
+    - name: Check if directory is a git repository
+      stat:
+        path: "{{ repo_path }}/.git"
+      register: git_dir
+      
+    - name: Fail if not a git repository
+      fail:
+        msg: "{{ repo_path }} is not a git repository"
+      when: not git_dir.stat.exists
+      
+    - name: Get current commit hash
+      command: git rev-parse HEAD
+      args:
+        chdir: "{{ repo_path }}"
+      register: old_commit
+      changed_when: false
+      
+    - name: Fetch latest changes
+      git:
+        repo: git@github.com:rakhpai/marketing-dashboard.git
+        dest: "{{ repo_path }}"
+        version: "{{ branch }}"
+        update: yes
+        accept_hostkey: yes
+      register: git_result
+      
+    - name: Get new commit hash
+      command: git rev-parse HEAD
+      args:
+        chdir: "{{ repo_path }}"
+      register: new_commit
+      changed_when: false
+      
+    - name: Check if requirements.txt has changed
+      command: git diff --name-only {{ old_commit.stdout }} {{ new_commit.stdout }} -- requirements.txt
+      args:
+        chdir: "{{ repo_path }}"
+      register: req_diff
+      changed_when: false
+      
+    - name: Update dependencies if requirements.txt has changed
+      pip:
+        requirements: "{{ repo_path }}/requirements.txt"
+        virtualenv: "{{ repo_path }}/venv"
+        state: present
+      when: req_diff.stdout != ""
+      
+    - name: Check if application files have changed
+      shell: git diff --name-only {{ old_commit.stdout }} {{ new_commit.stdout }} | grep -E 'app.py|src/'
+      args:
+        chdir: "{{ repo_path }}"
+      register: app_diff
+      changed_when: false
+      ignore_errors: yes
+      
+    - name: Restart Streamlit if application files have changed
+      block:
+        - name: Check if restart script exists
+          stat:
+            path: "{{ repo_path }}/restart_streamlit.sh"
+          register: restart_script
+          
+        - name: Run restart script if it exists
+          command: "{{ repo_path }}/restart_streamlit.sh"
+          args:
+            chdir: "{{ repo_path }}"
+          when: restart_script.stat.exists and restart_script.stat.executable
+          
+        - name: Restart Streamlit manually if script doesn't exist
+          block:
+            - name: Kill existing Streamlit process
+              shell: pkill -f "streamlit run app.py" || true
+              ignore_errors: yes
+              
+            - name: Start Streamlit
+              shell: nohup streamlit run app.py > streamlit.log 2>&1 &
+              args:
+                chdir: "{{ repo_path }}"
+              become_user: "{{ app_user }}"
+          when: not restart_script.stat.exists or not restart_script.stat.executable
+      when: app_diff.rc == 0
