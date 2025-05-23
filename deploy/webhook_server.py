@@ -15,7 +15,7 @@ import logging
 from datetime import datetime
 
 # Configuration
-PORT = 9000  # Choose a port that's available on your server
+PORT = 9876  # Custom port for webhook server
 DEPLOY_SCRIPT = "/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/deploy/deploy.sh"
 LOG_FILE = "/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/deploy/webhook.log"
 SECRET_TOKEN = os.environ.get("WEBHOOK_SECRET", "")  # Set this to match your GitHub webhook secret
@@ -34,17 +34,17 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
         self.send_response(status_code)
         self.send_header('Content-type', content_type)
         self.end_headers()
-        
+
     def do_GET(self):
         """Handle GET requests - just return a simple message"""
         self._set_response()
         self.wfile.write("Webhook server is running".encode('utf-8'))
-        
+
     def do_POST(self):
         """Handle POST requests from GitHub"""
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        
+
         # Verify GitHub signature if a secret token is set
         if SECRET_TOKEN:
             signature = self.headers.get('X-Hub-Signature-256')
@@ -53,13 +53,13 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
                 self._set_response(403)
                 self.wfile.write("No signature provided".encode('utf-8'))
                 return
-                
+
             if not self._verify_signature(post_data, signature):
                 logger.warning("Invalid signature")
                 self._set_response(403)
                 self.wfile.write("Invalid signature".encode('utf-8'))
                 return
-        
+
         # Parse the JSON payload
         try:
             payload = json.loads(post_data.decode('utf-8'))
@@ -68,7 +68,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             self._set_response(400)
             self.wfile.write("Invalid JSON payload".encode('utf-8'))
             return
-            
+
         # Check if this is a push event
         event_type = self.headers.get('X-GitHub-Event')
         if event_type != 'push':
@@ -76,7 +76,7 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             self._set_response()
             self.wfile.write(f"Received {event_type} event, ignoring".encode('utf-8'))
             return
-            
+
         # Check if this is for the branch we want to deploy
         ref = payload.get('ref')
         if ref != f"refs/heads/{BRANCH}":
@@ -84,31 +84,31 @@ class WebhookHandler(http.server.BaseHTTPRequestHandler):
             self._set_response()
             self.wfile.write(f"Received push event for {ref}, ignoring".encode('utf-8'))
             return
-            
+
         # All checks passed, trigger deployment
         logger.info(f"Received push event for {BRANCH}, triggering deployment")
         self._set_response()
         self.wfile.write(f"Received push event for {BRANCH}, triggering deployment".encode('utf-8'))
-        
+
         # Run the deployment script
         try:
             subprocess.Popen([DEPLOY_SCRIPT], shell=True)
             logger.info("Deployment script started")
         except Exception as e:
             logger.error(f"Error running deployment script: {e}")
-            
+
     def _verify_signature(self, payload, signature):
         """Verify the GitHub signature"""
         if not signature.startswith('sha256='):
             return False
-            
+
         received_signature = signature[7:]  # Remove 'sha256=' prefix
         computed_signature = hmac.new(
             SECRET_TOKEN.encode('utf-8'),
             payload,
             hashlib.sha256
         ).hexdigest()
-        
+
         return hmac.compare_digest(received_signature, computed_signature)
 
 def run_server():

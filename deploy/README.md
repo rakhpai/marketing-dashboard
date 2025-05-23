@@ -31,7 +31,7 @@ There are two main deployment options:
 4. **Configure GitHub webhook**:
    - Go to your GitHub repository settings
    - Click on "Webhooks" > "Add webhook"
-   - Set Payload URL to `http://your-server-ip:9000/`
+   - Set Payload URL to `https://api.fgtwelve.ltd:9876/`
    - Set Content type to `application/json`
    - Set Secret to the same secret you used in the setup script
    - Select "Just the push event"
