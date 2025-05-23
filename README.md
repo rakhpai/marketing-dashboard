@@ -6,7 +6,7 @@ A Streamlit-based marketing dashboard for Twelve Transfers displaying key market
 
 - Interactive charts and visualizations
 - Channel performance tracking
-- Traffic and conversion metrics 
+- Traffic and conversion metrics
 - Dashboard filters by date range and marketing channel
 - Real-time updates via WebSockets
 
@@ -21,7 +21,7 @@ https://fgtwelve.ltd/marketing/
 # Clone the repository
 git clone <repository_url>
 
-# Navigate to project directory  
+# Navigate to project directory
 cd marketing
 
 # Install dependencies
@@ -35,23 +35,39 @@ streamlit run app.py
 
 The dashboard runs as a systemd service on the server with Nginx configured to proxy requests to the Streamlit application.
 
+### Automated Deployment
+
+This repository is configured with an automated deployment system that pulls and updates the server whenever code is pushed to the master branch.
+
+- **Webhook Server**: Running on port 9876
+- **Webhook URL**: https://fgtwelve.ltd/webhook
+- **Deployment Script**: `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/deploy/deploy.sh`
+- **Webhook Logs**: `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/deploy/webhook.log`
+
 ### Key Configuration Files
 
 - **Streamlit App**: `/var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/app.py`
 - **Systemd Service**: `/etc/systemd/system/streamlit-marketing.service`
 - **Nginx Configuration**: Set in Plesk's vhost_nginx.conf
+- **Webhook Service**: `/etc/systemd/system/marketing-webhook.service`
 
 ### Service Management
 
 ```bash
-# Check status
+# Check Streamlit status
 sudo systemctl status streamlit-marketing.service
 
-# Restart service
+# Restart Streamlit service
 sudo systemctl restart streamlit-marketing.service
 
-# View logs
+# Check Webhook status
+sudo systemctl status marketing-webhook.service
+
+# View Streamlit logs
 sudo journalctl -u streamlit-marketing.service
+
+# View Webhook logs
+tail -f /var/www/vhosts/fgtwelve.ltd/httpdocs/marketing/deploy/webhook.log
 ```
 
 ## Implementation Details
