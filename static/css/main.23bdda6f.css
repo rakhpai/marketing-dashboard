@@ -1,9 +1,0 @@
-/* Marketing Dashboard CSS */
-body {
-  font-family: 'Source Sans Pro', sans-serif;
-}
-
-.streamlit-container {
-  max-width: 1200px;
-  margin: 0 auto;
-}
